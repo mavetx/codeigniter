@@ -256,7 +256,7 @@ class CI_DB_mssql_driver extends CI_DB {
 	 */
 	protected function _version()
 	{
-		return "SELECT SERVERPROPERTY('ProductVersion') AS ver";
+		return "SELECT CAST(SERVERPROPERTY('ProductVersion') AS VARCHAR(MAX)) AS ver";
 	}
 
 	// --------------------------------------------------------------------
