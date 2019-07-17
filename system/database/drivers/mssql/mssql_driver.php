@@ -374,6 +374,20 @@ class CI_DB_mssql_driver extends CI_DB {
 	 */
 	protected function _update($table, $values)
 	{
+		// Prepend N to the insert/update values for nvarchar.
+		log_message('info', 'MSSQL_UPDATE()');
+		foreach ($values as $key => $val)
+		{
+			if (substr($val, 0, 1) == "'")
+			{
+				$values[$key] = 'N' . $val;
+			}
+			else
+			{
+				$values[$key] = $val;
+			}
+		}
+
 		$this->qb_limit = FALSE;
 		$this->qb_orderby = array();
 		return parent::_update($table, $values);
@@ -489,6 +503,57 @@ class CI_DB_mssql_driver extends CI_DB {
 		}
 
 		return ($this->db_debug) ? $this->display_error('db_unsupported_feature') : FALSE;
+	}
+
+	// --------------------------------------------------------------------
+
+	/**
+	 * Insert
+	 *
+	 * Compiles an insert string and runs the query
+	 *
+	 * @param	string	the table to insert data into
+	 * @param	array	an associative array of insert values
+	 * @param	bool	$escape	Whether to escape values and identifiers
+	 * @return	bool	TRUE on success, FALSE on failure
+	 */
+	public function insert($table = '', $set = NULL, $escape = NULL)
+	{
+		if ($set !== NULL)
+		{
+			$this->set($set, '', $escape);
+		}
+
+		if ($this->_validate_insert($table) === FALSE)
+		{
+			return FALSE;
+		}
+
+		// Prepend N to the insert/update values for nvarchar.
+		log_message('info', 'MSSQL_INSERT()');
+		$inputValue = array();
+		foreach (array_values($this->qb_set) as $val)
+		{
+			if (substr($val, 0, 1) == "'")
+			{
+				$inputValue[] = 'N' . $val;
+			}
+			else
+			{
+				$inputValue[] = $val;
+			}
+		}
+
+		$sql = $this->_insert(
+			$this->protect_identifiers(
+				$this->qb_from[0], TRUE, $escape, FALSE
+			),
+			array_keys($this->qb_set),
+			$inputValue //array_values($this->qb_set)
+		);
+
+		$this->_reset_write();
+		return $this->query($sql);
 	}
 
 	// --------------------------------------------------------------------
